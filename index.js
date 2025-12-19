@@ -15,6 +15,7 @@ const db = new pg.Client({
     host: "db.kwscdybwvxnfdszryixa.supabase.co",
     password: process.env.DB_PASSWORD,
     port: 5432,
+    ssl: { rejectUnauthorized: false },
 });
 db.connect();
 
@@ -66,9 +67,9 @@ app.get("/ly/:id", async (req, res) => {
 });
 
 app.post("/api-shorten", async (req, res) => {
-    const newLink = req.body.url;
+    const original = req.body.url;
 
-    const shortenedURL = await getShortenedLink(newLink);
+    const shortenedURL = await getShortenedLink(original);
 
     res.send({ shortened : shortenedURL });
 });
