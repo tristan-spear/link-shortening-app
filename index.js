@@ -1,12 +1,14 @@
 import express from "express";
 import pg from "pg";
 import dotenv from "dotenv";
+import ejs from "ejs";
 
 const app = express();
-const port = 300;
+const port = 3000;
 
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended : true}));
+dotenv.config();
 
 const db = new pg.Client({
     user: "postgres",

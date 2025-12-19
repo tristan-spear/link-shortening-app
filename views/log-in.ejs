@@ -1,0 +1,25 @@
+<%- include('partials/header') %>
+
+<main class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="display-3 mb-4 text-center">Log In</h1>
+            <form action="/log-in-submit" method="POST">
+                <div class="mb-4">
+                    <label for="username" class="form-label fs-4">Username</label>
+                    <input type="text" class="form-control form-control-lg" id="username" name="username" required>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label fs-4">Password</label>
+                    <input type="password" class="form-control form-control-lg" id="password" name="password" required>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg fs-4 py-3">Log In</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<%- include('partials/footer') %>
+
