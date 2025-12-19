@@ -25,5 +25,10 @@
     </div>
 </main>
 
+<script>
+    if('<%= locals.errmessage %>' != '')
+        alert('<%= locals.errmessage %>');
+</script>
+
 <%- include('partials/footer') %>
 
