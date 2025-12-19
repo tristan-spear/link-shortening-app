@@ -1,7 +1,6 @@
 import express from "express";
 import pg from "pg";
 import dotenv from "dotenv";
-import ejs from "ejs";
 
 const app = express();
 const port = 3000;
@@ -19,99 +18,59 @@ const db = new pg.Client({
 });
 db.connect();
 
-let currentUserID;
+async function getShortenedLink(originalURL) {
+    
+    const result = await db.query(
+        "INSERT INTO links (url) VALUES ($1) RETURNING id;",
+        [originalURL]
+    );
+
+    const linkID = result.rows[0].id;
+    const shortenedURL = "localhost:3000/ly/" + linkID
+
+    return shortenedURL;
+}
+
 
 // default landing page
 app.get("/", (req, res) => {
-    res.render("landing.ejs");
-});
-
-// navigate to sign-up page
-app.get("/sign-up", (req, res) => {
-    res.render("sign-up.ejs");
-});
-
-// add new user to db
-app.post("/sign-up-submit", async (req, res) => {
-    const username = req.body["username"];
-    const password = req.body["password"];
-    const reenterpass = req.body["reenter-password"];
-
-    if(password !== reenterpass)
-    {
-        res.render("sign-up.ejs", { errmessage : "Passwords do not match" });
-        return;
-    }
-    
-    try {
-        // check if username is already taken
-        const result = await db.query (
-            "SELECT * FROM users WHERE name = $1", 
-            [username]
-        );
-        if(result.rowCount !== 0) {
-            res.render("sign-up.ejs", { errmessage : "Username is taken" });
-            return;
-        }
-
-        // add username and password to db
-        db.query(
-            "INSERT INTO users (name, password) VALUES ($1, $2);",
-            [username, password]
-        );
-    
-        res.redirect("/log-in");
-    }
-    catch(err) {
-        console.error(err.stack);
-    }
-});
-
-// navigate to log in page
-app.get("/log-in", (req, res) => {
-    res.render("log-in.ejs");
-});
-
-// attempt to log in to account
-app.post("/log-in-submit", async(req, res) => {
-
-    const username = req.body["username"];
-    const password = req.body["password"];
-
-    try {
-        const result = await db.query(
-            "SELECT * FROM users WHERE name = $1",
-            [username]
-        );
-
-        if(result.rowCount === 0) {
-            res.render("log-in.ejs", { errmessage : "Username not found" });
-            return;
-        }
-
-        const userObject = result.rows;
-            
-        if(password == userObject[0].password)
-            res.render("home.ejs");
-    
-        else
-            res.render("log-in.ejs", { errmessage : "Incorrect password" });
-    }
-    catch(err) {
-        console.error(err.stack);
-    }
+    res.render("home.ejs");
 });
 
 // add link to db and return shortened version
-app.post("/shorten-link", (req, res) => {
-
+app.post("/shorten-link", async(req, res) => {
     const newLink = req.body["link"];
+
+    const shortenedURL = await getShortenedLink(newLink);
+
+    res.render("home.ejs", { shortened : shortenedURL });
 });
 
 // shortened link in use
 // navigate to stored link
-app.get("/link", (req, res) => {
+app.get("/ly/:id", async (req, res) => {
     const linkID = req.params.id;
+    
+    const result = await db.query(
+        "SELECT url FROM links WHERE id = $1",
+        [linkID]
+    );
+    let url = result.rows[0].url;
+
+    // make sure url starts with https://
+    if(url.substring(0,8) != "https://")
+        url = "https://" + url;
+
+    //res.render("link.ejs", { external : url});
+    res.redirect(url);
+});
+
+app.post("/api-shorten", async (req, res) => {
+    const newLink = req.body.url;
+
+    const shortenedURL = await getShortenedLink(newLink);
+
+    res.send({ shortened : shortenedURL });
 });
 
 app.listen(port, () => {

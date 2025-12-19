@@ -1,1 +1,51 @@
-<h1>SUCCESS</h1>
+<%- include('partials/header') %>
+
+<main class="container pb-5">
+    <div class="row justify-content-center pb-5">
+        <div class="col-md-6 p-5">
+            <h1 class="display-3 mb-4 text-center">Shorten Your Link</h1>
+            <form action="/shorten-link" method="POST">
+                <div class="mb-4">
+                    <label for="link" class="form-label fs-4">Link</label>
+                    <input type="text" class="form-control form-control-lg" id="link" name="link" placeholder="https://example.com" required>
+                </div>
+                <div class="d-grid mb-5">
+                    <button type="submit" class="btn btn-primary btn-lg fs-4 py-3">Shorten</button>
+                </div>
+            </form>
+            <% if(locals.shortened) { %>
+                <div class="mt-5 p-4 bg-light rounded border shadow-sm">
+                    <h2 class="mb-4 text-center">Shortened Link</h2>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-lg" id="shortened-link" value="<%= locals.shortened %>" readonly>
+                        <button class="btn btn-primary btn-lg" type="button" onclick="copyLink()">Copy</button>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</main>
+
+<script>
+    function copyLink() {
+        const linkInput = document.getElementById('shortened-link');
+        linkInput.select();
+        linkInput.setSelectionRange(0, 99999); // For mobile devices
+        navigator.clipboard.writeText(linkInput.value).then(() => {
+            const copyBtn = event.target;
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.remove('btn-primary');
+            copyBtn.classList.add('btn-success');
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('btn-success');
+                copyBtn.classList.add('btn-primary');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+</script>
+
+<%- include('partials/footer') %>
