@@ -3,7 +3,7 @@ import pg from "pg";
 import dotenv from "dotenv";
 
 const app = express();
-const port = 3000;
+//const port = 3000;
 
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended : true}));
@@ -74,6 +74,7 @@ app.post("/api-shorten", async (req, res) => {
     res.send({ shortened : shortenedURL });
 });
 
-app.listen(port, () => {
-    console.log(`Server is running of port ${port}`);
-});
+// app.listen(port, () => {
+//     console.log(`Server is running of port ${port}`);
+// });
+export default app;
