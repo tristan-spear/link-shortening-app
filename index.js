@@ -1,6 +1,11 @@
 import express from "express";
 import pg from "pg";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 //const port = 3000;
@@ -10,6 +15,7 @@ app.use(express.urlencoded({ extended : true}));
 dotenv.config();
 
 app.set("view engine", "ejs");
+app.set("views", join(__dirname, "views"));
 
 const db = new pg.Client({
     user: "postgres",
