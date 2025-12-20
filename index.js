@@ -84,7 +84,7 @@ async function getShortenedLink(originalURL) {
 
     const linkID = result.rows[0].id;
     const baseURL = process.env.TINY_URL;
-    const shortenedURL = (baseURL.startsWith("http") ? baseURL : `https://${baseURL}`) + "/ly/" + linkID;
+    const shortenedURL = (baseURL.startsWith("http") ? baseURL : `https://${baseURL}`) + "/l/" + linkID;
 
     return shortenedURL;
 }
@@ -134,7 +134,7 @@ app.get("/l/:id", async (req, res) => {
         //res.render("link.ejs", { external : url});
         res.redirect(url);
     } catch (err) {
-        console.error("Error in /ly/:id:", err);
+        console.error("Error in /l/:id:", err);
         res.status(500).send("Error redirecting: " + err.message);
     }
 });
