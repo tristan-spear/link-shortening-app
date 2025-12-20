@@ -18,11 +18,11 @@ app.set("view engine", "ejs");
 app.set("views", join(__dirname, "views"));
 
 const db = new pg.Client({
-    user: process.env.DB_USER || "postgres",
-    database: process.env.DB_NAME || "postgres",
-    host: process.env.DB_HOST || "db.kwscdybwvxnfdszryixa.supabase.co",
+    user: "postgres.kwscdybwvxnfdszryixa",
+    database: "postgres",
+    host: "aws-1-us-east-2.pooler.supabase.com",
     password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || "5432"),
+    port: 6543,
     ssl: { rejectUnauthorized: false },
 });
 
@@ -46,12 +46,7 @@ async function connectDB() {
             throw new Error("DB_PASSWORD environment variable is not set. Please configure it in Vercel.");
         }
         
-        const dbHost = process.env.DB_HOST || "db.kwscdybwvxnfdszryixa.supabase.co";
-        if (!dbHost) {
-            throw new Error("DB_HOST environment variable is not set. Please configure it in Vercel.");
-        }
-        
-        console.log(`Attempting to connect to database at: ${dbHost}`);
+        console.log(`Attempting to connect to database at: aws-1-us-east-2.pooler.supabase.com`);
         
         await db.connect();
         dbConnected = true;
@@ -69,9 +64,8 @@ async function connectDB() {
         if (err.message && err.message.includes("ENOTFOUND")) {
             errorMessage = `Cannot resolve database hostname. Please check:\n` +
                           `1. Is your Supabase database active? (Free tier databases pause after inactivity)\n` +
-                          `2. Is DB_HOST set correctly in Vercel environment variables?\n` +
-                          `3. Verify the connection string in your Supabase dashboard (Settings → Database)\n` +
-                          `Current host: ${process.env.DB_HOST || "db.kwscdybwvxnfdszryixa.supabase.co"}`;
+                          `2. Verify the connection string in your Supabase dashboard (Settings → Database)\n` +
+                          `Current host: aws-1-us-east-2.pooler.supabase.com`;
         }
         
         console.error("Database connection error:", errorMessage);
