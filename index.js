@@ -48,8 +48,8 @@ async function getShortenedLink(originalURL) {
     );
 
     const linkID = result.rows[0].id;
-    const baseURL = process.env.VERCEL_URL
-    const shortenedURL = baseURL + "/ly/" + linkID;
+    const baseURL = process.env.VERCEL_URL || process.env.URL || "http://localhost:3000";
+    const shortenedURL = (baseURL.startsWith("http") ? baseURL : `https://${baseURL}`) + "/ly/" + linkID;
 
     return shortenedURL;
 }
@@ -61,41 +61,61 @@ app.get("/", (req, res) => {
 
 // add link to db and return shortened version
 app.post("/shorten-link", async(req, res) => {
-    await connectDB;
-    const newLink = req.body["link"];
+    try {
+        await connectDB();
+        const newLink = req.body["link"];
 
-    const shortenedURL = await getShortenedLink(newLink);
+        const shortenedURL = await getShortenedLink(newLink);
 
-    res.render("home.ejs", { shortened : shortenedURL });
+        res.render("home.ejs", { shortened : shortenedURL });
+    } catch (err) {
+        console.error("Error in /shorten-link:", err);
+        res.status(500).send("Error shortening link: " + err.message);
+    }
 });
 
 // shortened link in use
 // navigate to stored link
 app.get("/ly/:id", async (req, res) => {
-    await connectDB;
-    const linkID = req.params.id;
-    
-    const result = await db.query(
-        "SELECT url FROM links WHERE id = $1",
-        [linkID]
-    );
-    let url = result.rows[0].url;
+    try {
+        await connectDB();
+        const linkID = req.params.id;
+        
+        const result = await db.query(
+            "SELECT url FROM links WHERE id = $1",
+            [linkID]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).send("Link not found");
+        }
+        
+        let url = result.rows[0].url;
 
-    // make sure url starts with https://
-    if(url.substring(0,8) != "https://")
-        url = "https://" + url;
+        // make sure url starts with https://
+        if(url.substring(0,8) != "https://")
+            url = "https://" + url;
 
-    //res.render("link.ejs", { external : url});
-    res.redirect(url);
+        //res.render("link.ejs", { external : url});
+        res.redirect(url);
+    } catch (err) {
+        console.error("Error in /ly/:id:", err);
+        res.status(500).send("Error redirecting: " + err.message);
+    }
 });
 
 app.post("/api-shorten", async (req, res) => {
-    await connectDB;
-    const original = req.body.url;
+    try {
+        await connectDB();
+        const original = req.body.url;
 
-    const shortenedURL = await getShortenedLink(original);
+        const shortenedURL = await getShortenedLink(original);
 
-    res.send({ shortened : shortenedURL });
+        res.send({ shortened : shortenedURL });
+    } catch (err) {
+        console.error("Error in /api-shorten:", err);
+        res.status(500).send({ error: "Error shortening link: " + err.message });
+    }
 });
 
 // app.listen(port, () => {
