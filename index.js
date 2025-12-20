@@ -18,11 +18,11 @@ app.set("view engine", "ejs");
 app.set("views", join(__dirname, "views"));
 
 const db = new pg.Client({
-    user: "postgres",
-    database: "postgres",
-    host: "db.kwscdybwvxnfdszryixa.supabase.co",
+    user: process.env.DB_USER || "postgres",
+    database: process.env.DB_NAME || "postgres",
+    host: process.env.DB_HOST || "db.kwscdybwvxnfdszryixa.supabase.co",
     password: process.env.DB_PASSWORD,
-    port: 5432,
+    port: parseInt(process.env.DB_PORT || "5432"),
     ssl: { rejectUnauthorized: false },
 });
 
@@ -32,11 +32,18 @@ async function connectDB() {
     if(dbConnected) return;
     else{
         try {
+            if (!process.env.DB_PASSWORD) {
+                throw new Error("DB_PASSWORD environment variable is not set");
+            }
             await db.connect();
             dbConnected = true;
+            console.log("Database connected successfully");
         }
         catch(err) {
-            console.error(err.stack);
+            console.error("Database connection error:", err.message);
+            console.error("Full error:", err.stack);
+            dbConnected = false;
+            throw err; // Re-throw to let callers handle it
         }
     }
 }
