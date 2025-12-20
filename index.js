@@ -29,22 +29,37 @@ const db = new pg.Client({
 let dbConnected = false;
 
 async function connectDB() {
-    if(dbConnected) return;
-    else{
+    // If we think we're connected, try a simple query to verify
+    if (dbConnected) {
         try {
-            if (!process.env.DB_PASSWORD) {
-                throw new Error("DB_PASSWORD environment variable is not set");
-            }
-            await db.connect();
-            dbConnected = true;
-            console.log("Database connected successfully");
-        }
-        catch(err) {
-            console.error("Database connection error:", err.message);
-            console.error("Full error:", err.stack);
+            await db.query("SELECT 1");
+            return; // Connection is still alive
+        } catch (err) {
+            // Connection is dead, reset flag and reconnect
             dbConnected = false;
-            throw err; // Re-throw to let callers handle it
         }
+    }
+    
+    try {
+        if (!process.env.DB_PASSWORD) {
+            throw new Error("DB_PASSWORD environment variable is not set");
+        }
+        
+        await db.connect();
+        dbConnected = true;
+        console.log("Database connected successfully");
+    }
+    catch(err) {
+        // If error is "already connected", treat as success
+        if (err.message && err.message.includes("already been connected")) {
+            dbConnected = true;
+            return;
+        }
+        
+        console.error("Database connection error:", err.message);
+        console.error("Full error:", err.stack);
+        dbConnected = false;
+        throw err; // Re-throw to let callers handle it
     }
 }
 
