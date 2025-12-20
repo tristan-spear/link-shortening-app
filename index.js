@@ -19,7 +19,21 @@ const db = new pg.Client({
     port: 5432,
     ssl: { rejectUnauthorized: false },
 });
-db.connect();
+
+let dbConnected = false;
+
+async function connectDB() {
+    if(dbConnected) return;
+    else{
+        try {
+            await db.connect();
+            dbConnected = true;
+        }
+        catch(err) {
+            console.error(err.stack);
+        }
+    }
+}
 
 async function getShortenedLink(originalURL) {
     const result = await db.query(
@@ -41,6 +55,7 @@ app.get("/", (req, res) => {
 
 // add link to db and return shortened version
 app.post("/shorten-link", async(req, res) => {
+    connectDB;
     const newLink = req.body["link"];
 
     const shortenedURL = await getShortenedLink(newLink);
@@ -51,6 +66,7 @@ app.post("/shorten-link", async(req, res) => {
 // shortened link in use
 // navigate to stored link
 app.get("/ly/:id", async (req, res) => {
+    connectDB;
     const linkID = req.params.id;
     
     const result = await db.query(
@@ -68,6 +84,7 @@ app.get("/ly/:id", async (req, res) => {
 });
 
 app.post("/api-shorten", async (req, res) => {
+    connectDB;
     const original = req.body.url;
 
     const shortenedURL = await getShortenedLink(original);
