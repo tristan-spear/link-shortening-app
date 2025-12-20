@@ -111,7 +111,7 @@ app.post("/shorten-link", async(req, res) => {
 
 // shortened link in use
 // navigate to stored link
-app.get("/ly/:id", async (req, res) => {
+app.get("/l/:id", async (req, res) => {
     try {
         await connectDB();
         const linkID = req.params.id;
