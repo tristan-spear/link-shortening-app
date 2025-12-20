@@ -10,6 +10,7 @@ const __dirname = dirname(__filename);
 const app = express();
 //const port = 3000;
 
+app.use(express.json());
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended : true}));
 dotenv.config();
@@ -142,11 +143,11 @@ app.post("/api-shorten", async (req, res) => {
     try {
         await connectDB();
         const original = req.body.url;
-
         const shortenedURL = await getShortenedLink(original);
 
         res.send({ shortened : shortenedURL });
-    } catch (err) {
+    }
+    catch (err) {
         console.error("Error in /api-shorten:", err);
         res.status(500).send({ error: "Error shortening link: " + err.message });
     }
