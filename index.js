@@ -41,9 +41,17 @@ async function connectDB() {
     }
     
     try {
+        // Validate required environment variables
         if (!process.env.DB_PASSWORD) {
-            throw new Error("DB_PASSWORD environment variable is not set");
+            throw new Error("DB_PASSWORD environment variable is not set. Please configure it in Vercel.");
         }
+        
+        const dbHost = process.env.DB_HOST || "db.kwscdybwvxnfdszryixa.supabase.co";
+        if (!dbHost) {
+            throw new Error("DB_HOST environment variable is not set. Please configure it in Vercel.");
+        }
+        
+        console.log(`Attempting to connect to database at: ${dbHost}`);
         
         await db.connect();
         dbConnected = true;
@@ -56,10 +64,20 @@ async function connectDB() {
             return;
         }
         
-        console.error("Database connection error:", err.message);
+        // Provide helpful error messages for common issues
+        let errorMessage = err.message;
+        if (err.message && err.message.includes("ENOTFOUND")) {
+            errorMessage = `Cannot resolve database hostname. Please check:\n` +
+                          `1. Is your Supabase database active? (Free tier databases pause after inactivity)\n` +
+                          `2. Is DB_HOST set correctly in Vercel environment variables?\n` +
+                          `3. Verify the connection string in your Supabase dashboard (Settings → Database)\n` +
+                          `Current host: ${process.env.DB_HOST || "db.kwscdybwvxnfdszryixa.supabase.co"}`;
+        }
+        
+        console.error("Database connection error:", errorMessage);
         console.error("Full error:", err.stack);
         dbConnected = false;
-        throw err; // Re-throw to let callers handle it
+        throw new Error(errorMessage); // Re-throw with helpful message
     }
 }
 
