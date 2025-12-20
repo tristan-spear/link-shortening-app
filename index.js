@@ -61,7 +61,7 @@ app.get("/", (req, res) => {
 
 // add link to db and return shortened version
 app.post("/shorten-link", async(req, res) => {
-    connectDB;
+    await connectDB;
     const newLink = req.body["link"];
 
     const shortenedURL = await getShortenedLink(newLink);
@@ -72,7 +72,7 @@ app.post("/shorten-link", async(req, res) => {
 // shortened link in use
 // navigate to stored link
 app.get("/ly/:id", async (req, res) => {
-    connectDB;
+    await connectDB;
     const linkID = req.params.id;
     
     const result = await db.query(
@@ -90,7 +90,7 @@ app.get("/ly/:id", async (req, res) => {
 });
 
 app.post("/api-shorten", async (req, res) => {
-    connectDB;
+    await connectDB;
     const original = req.body.url;
 
     const shortenedURL = await getShortenedLink(original);
