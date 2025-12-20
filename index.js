@@ -9,6 +9,8 @@ app.use(express.static("public"));
 app.use(express.urlencoded({ extended : true}));
 dotenv.config();
 
+app.set("view engine", "ejs");
+
 const db = new pg.Client({
     user: "postgres",
     database: "postgres",
@@ -20,18 +22,17 @@ const db = new pg.Client({
 db.connect();
 
 async function getShortenedLink(originalURL) {
-    
     const result = await db.query(
         "INSERT INTO links (url) VALUES ($1) RETURNING id;",
         [originalURL]
     );
 
     const linkID = result.rows[0].id;
-    const shortenedURL = "localhost:3000/ly/" + linkID
+    const baseURL = process.env.VERCEL_URL
+    const shortenedURL = baseURL + "/ly/" + linkID;
 
     return shortenedURL;
 }
-
 
 // default landing page
 app.get("/", (req, res) => {
