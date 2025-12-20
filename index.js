@@ -82,7 +82,7 @@ async function getShortenedLink(originalURL) {
     );
 
     const linkID = result.rows[0].id;
-    const baseURL = process.env.VERCEL_URL;
+    const baseURL = process.env.TINY_URL;
     const shortenedURL = (baseURL.startsWith("http") ? baseURL : `https://${baseURL}`) + "/ly/" + linkID;
 
     return shortenedURL;
