@@ -1,6 +1,7 @@
 import express from "express";
 import pg from "pg";
 import dotenv from "dotenv";
+import session from "express-session";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -17,6 +18,20 @@ dotenv.config();
 
 app.set("view engine", "ejs");
 app.set("views", join(__dirname, "views"));
+
+app.set("trust proxy", 1);
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || "dev-session-secret",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+        },
+    })
+);
 
 const db = new pg.Client({
     user: "postgres.kwscdybwvxnfdszryixa",
@@ -89,20 +104,109 @@ async function getShortenedLink(originalURL) {
     return shortenedURL;
 }
 
-// default landing page
+function requireAuth(req, res, next) {
+    if (req.session?.userId) return next();
+    return res.redirect("/log-in");
+}
+
+// landing page
 app.get("/", (req, res) => {
-    res.render("home.ejs");
+    if (req.session?.userId) return res.redirect("/home");
+    res.render("landing.ejs");
+});
+
+app.get("/home", requireAuth, (req, res) => {
+    res.render("home.ejs", { user: { name: req.session.username } });
+});
+
+// navigate to sign-up page
+app.get("/sign-up", (req, res) => {
+    if (req.session?.userId) return res.redirect("/home");
+    res.render("sign-up.ejs");
+});
+
+// add new user to db
+app.post("/sign-up-submit", async (req, res) => {
+    const username = (req.body?.username || "").trim();
+    const password = req.body?.password || "";
+    const reenterpass = req.body?.["reenter-password"] || "";
+
+    if (!username || !password) {
+        return res.status(400).render("sign-up.ejs", { errmessage: "Username and password are required" });
+    }
+
+    if (password !== reenterpass) {
+        return res.status(400).render("sign-up.ejs", { errmessage: "Passwords do not match" });
+    }
+
+    try {
+        await connectDB();
+
+        const existing = await db.query("SELECT 1 FROM users WHERE name = $1", [username]);
+        if (existing.rowCount !== 0) {
+            return res.status(409).render("sign-up.ejs", { errmessage: "Username is taken" });
+        }
+
+        await db.query("INSERT INTO users (name, password) VALUES ($1, $2);", [username, password]);
+        return res.redirect("/log-in");
+    } catch (err) {
+        console.error("Error in /sign-up-submit:", err);
+        return res.status(500).render("sign-up.ejs", { errmessage: "Could not create account" });
+    }
+});
+
+// navigate to log in page
+app.get("/log-in", (req, res) => {
+    if (req.session?.userId) return res.redirect("/home");
+    res.render("log-in.ejs");
+});
+
+// attempt to log in to account
+app.post("/log-in-submit", async (req, res) => {
+    const username = (req.body?.username || "").trim();
+    const password = req.body?.password || "";
+
+    if (!username || !password) {
+        return res.status(400).render("log-in.ejs", { errmessage: "Username and password are required" });
+    }
+
+    try {
+        await connectDB();
+        const result = await db.query("SELECT id, name, password FROM users WHERE name = $1", [username]);
+
+        if (result.rowCount === 0) {
+            return res.status(401).render("log-in.ejs", { errmessage: "Username not found" });
+        }
+
+        const user = result.rows[0];
+        if (password !== user.password) {
+            return res.status(401).render("log-in.ejs", { errmessage: "Incorrect password" });
+        }
+
+        req.session.userId = user.id;
+        req.session.username = user.name;
+        return res.redirect("/home");
+    } catch (err) {
+        console.error("Error in /log-in-submit:", err);
+        return res.status(500).render("log-in.ejs", { errmessage: "Could not log in" });
+    }
+});
+
+app.post("/log-out", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/");
+    });
 });
 
 // add link to db and return shortened version
-app.post("/shorten-link", async(req, res) => {
+app.post("/shorten-link", requireAuth, async(req, res) => {
     try {
         await connectDB();
         const newLink = req.body["link"];
 
         const shortenedURL = await getShortenedLink(newLink);
 
-        res.render("home.ejs", { shortened : shortenedURL });
+        res.render("home.ejs", { shortened : shortenedURL, user: { name: req.session.username } });
     } catch (err) {
         console.error("Error in /shorten-link:", err);
         res.status(500).send("Error shortening link: " + err.message);
@@ -139,7 +243,7 @@ app.get("/l/:id", async (req, res) => {
     }
 });
 
-app.post("/api-shorten", async (req, res) => {
+app.post("/api-shorten", requireAuth, async (req, res) => {
     try {
         await connectDB();
         const original = req.body.url;
