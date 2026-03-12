@@ -2,6 +2,7 @@ import express from "express";
 import pg from "pg";
 import dotenv from "dotenv";
 import session from "express-session";
+import bcrypt from "bcrypt";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -147,7 +148,10 @@ app.post("/sign-up-submit", async (req, res) => {
             return res.status(409).render("sign-up.ejs", { errmessage: "Username is taken" });
         }
 
-        await db.query("INSERT INTO users (name, password) VALUES ($1, $2);", [username, password]);
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+
+        await db.query("INSERT INTO users (name, password) VALUES ($1, $2);", [username, passwordHash]);
         return res.redirect("/log-in");
     } catch (err) {
         console.error("Error in /sign-up-submit:", err);
@@ -179,7 +183,8 @@ app.post("/log-in-submit", async (req, res) => {
         }
 
         const user = result.rows[0];
-        if (password !== user.password) {
+        const passwordMatches = await bcrypt.compare(password, user.password);
+        if (!passwordMatches) {
             return res.status(401).render("log-in.ejs", { errmessage: "Incorrect password" });
         }
 
