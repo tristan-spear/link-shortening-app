@@ -34,23 +34,24 @@ app.use(
     })
 );
 
-const db = new pg.Client({
-    user: "postgres.kwscdybwvxnfdszryixa",
-    database: "postgres",
-    host: "aws-1-us-east-2.pooler.supabase.com",
-    password: process.env.DB_PASSWORD,
-    port: 6543,
+const db = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
+    max: 10,
 });
 
 let dbConnected = false;
+let schemaReady = false;
 
 async function connectDB() {
-    // If we think we're connected, try a simple query to verify
+    if (!process.env.DATABASE_URL) {
+        throw new Error("DATABASE_URL is not set. Add your Neon connection string to the environment.");
+    }
+
     if (dbConnected) {
         try {
             await db.query("SELECT 1");
-            return; // Connection is still alive
+            return;
         } catch (err) {
             // Connection is dead, reset flag and reconnect
             dbConnected = false;
@@ -58,37 +59,33 @@ async function connectDB() {
     }
     
     try {
-        // Validate required environment variables
-        if (!process.env.DB_PASSWORD) {
-            throw new Error("DB_PASSWORD environment variable is not set. Please configure it in Vercel.");
-        }
-        
-        console.log(`Attempting to connect to database at: aws-1-us-east-2.pooler.supabase.com`);
-        
-        await db.connect();
+        console.log("Connecting to Neon database...");
+        await db.query("SELECT 1");
         dbConnected = true;
-        console.log("Database connected successfully");
+        if (!schemaReady) {
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    name TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS links (
+                    id SERIAL PRIMARY KEY,
+                    url TEXT NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            schemaReady = true;
+        }
+        console.log("Neon database connected successfully");
     }
     catch(err) {
         // If error is "already connected", treat as success
-        if (err.message && err.message.includes("already been connected")) {
-            dbConnected = true;
-            return;
-        }
-        
-        // Provide helpful error messages for common issues
-        let errorMessage = err.message;
-        if (err.message && err.message.includes("ENOTFOUND")) {
-            errorMessage = `Cannot resolve database hostname. Please check:\n` +
-                          `1. Is your Supabase database active? (Free tier databases pause after inactivity)\n` +
-                          `2. Verify the connection string in your Supabase dashboard (Settings → Database)\n` +
-                          `Current host: aws-1-us-east-2.pooler.supabase.com`;
-        }
-        
-        console.error("Database connection error:", errorMessage);
+        const errorMessage = err.message;
+        console.error("Neon database connection error:", errorMessage);
         console.error("Full error:", err.stack);
         dbConnected = false;
-        throw new Error(errorMessage); // Re-throw with helpful message
+        throw new Error(errorMessage);
     }
 }
 

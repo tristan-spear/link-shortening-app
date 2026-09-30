@@ -13,7 +13,8 @@
                     <button class="btn btn-outline-secondary">Log out</button>
                 </form>
             </div>
-            <h1 class="display-3 mb-4 text-center">Shorten Your Link</h1>
+            <h1 class="display-3 fw-bold mb-2 text-center">Shorten your link</h1>
+            <p class="text-secondary text-center mb-4">Paste a URL below to create a shareable Tin3 link.</p>
             <form action="/shorten-link" method="POST">
                 <div class="mb-4">
                     <label for="link" class="form-label fs-4">Link</label>
@@ -28,7 +29,7 @@
                     <h2 class="mb-4 text-center">Shortened Link</h2>
                     <div class="input-group">
                         <input type="text" class="form-control form-control-lg" id="shortened-link" value="<%= locals.shortened %>" readonly>
-                        <button class="btn btn-primary btn-lg" type="button" onclick="copyLink()">Copy</button>
+                        <button class="btn btn-primary btn-lg" type="button" onclick="copyLink(this)">Copy</button>
                     </div>
                 </div>
             <% } %>
@@ -37,12 +38,11 @@
 </main>
 
 <script>
-    function copyLink() {
+    function copyLink(copyBtn) {
         const linkInput = document.getElementById('shortened-link');
         linkInput.select();
         linkInput.setSelectionRange(0, 99999); // For mobile devices
         navigator.clipboard.writeText(linkInput.value).then(() => {
-            const copyBtn = event.target;
             const originalText = copyBtn.textContent;
             copyBtn.textContent = 'Copied!';
             copyBtn.classList.remove('btn-primary');
