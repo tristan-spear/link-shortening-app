@@ -97,7 +97,7 @@ async function getShortenedLink(originalURL) {
 
     const linkID = result.rows[0].id;
     const baseURL = process.env.TINY_URL;
-    const shortenedURL = (baseURL.startsWith("http") ? baseURL : `https://${baseURL}`) + "/l/" + linkID;
+    const shortenedURL = baseURL + "/l/" + linkID;
 
     return shortenedURL;
 }
@@ -234,8 +234,9 @@ app.get("/l/:id", async (req, res) => {
         let url = result.rows[0].url;
 
         // make sure url starts with https://
-        if(url.substring(0,8) != "https://")
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
             url = "https://" + url;
+        }
 
         //res.render("link.ejs", { external : url});
         res.redirect(url);
